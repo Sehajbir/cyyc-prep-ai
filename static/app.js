@@ -414,7 +414,7 @@
     const taxiwayLabel = s.route.replace(/\*/g, '');
     const answer = s.direction === 'arrival'
       ? `Taxiway ${taxiwayLabel}`
-      : `Position ${s.correctPositions.join(' or ')} · Taxiway ${taxwayLabel}`;
+      : `Position ${s.correctPositions.join(' or ')} · Taxiway ${taxiwayLabel}`;
     return `<div class="scenario-result ${isCorrect ? 'correct' : 'incorrect'}"><div><strong>${isCorrect ? 'Correct route.' : 'Not quite.'}</strong><small>${isCorrect ? 'Good read on the supplied Apron 1 table.' : `The table calls for ${answer}.`}</small></div><button class="next-scenario" id="nextScenario">Next scenario ↗</button></div>`;
   }
 
