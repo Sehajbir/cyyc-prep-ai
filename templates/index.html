@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#08111d">
+  <title>CYYC Prep AI · Flight deck study tools</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-lockup">
+        <div class="brand-mark" aria-hidden="true"><span>✦</span></div>
+        <div>
+          <strong>CYYC <em>Prep AI</em></strong>
+          <small>FLIGHT DECK STUDY TOOLS</small>
+        </div>
+      </div>
+      <div class="nav-label">WORKSPACE</div>
+      <nav class="primary-nav" aria-label="Main navigation">
+        <button class="nav-item active" data-view="dashboardView"><span class="nav-icon">⌂</span><span>Overview</span></button>
+        <button class="nav-item" data-view="flashcardsView"><span class="nav-icon">▤</span><span>Flash Cards</span><span class="nav-count" id="navDeckCount">0</span></button>
+        <button class="nav-item" data-view="apronView"><span class="nav-icon">⌁</span><span>Apron Ops</span><span class="nav-live-dot"></span></button>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="sidebar-rule"></div>
+        <div class="sync-state"><span class="sync-dot"></span><span>Saved in this browser</span></div>
+        <p>Study locally, export often.<br>Built for focused practice.</p>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobileMenu" aria-label="Open menu">☰</button>
+        <div class="breadcrumbs"><span>CYYC / PREP</span><b>·</b><span id="currentCrumb">OVERVIEW</span></div>
+        <div class="topbar-actions">
+          <button class="top-action" id="importButton" title="Import all decks from a JSON file"><span>↓</span> Import</button>
+          <button class="top-action filled" id="exportButton" title="Export all decks as JSON"><span>↑</span> Export all</button>
+          <input id="importInput" type="file" accept="application/json,.json" hidden>
+          <div class="avatar" aria-label="Local study profile">CY</div>
+        </div>
+      </header>
+
+      <section class="view active" id="dashboardView">
+        <div class="page-heading hero-heading">
+          <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span> FLIGHT DECK / TODAY</div>
+            <h1>Good to see you, <span>pilot.</span></h1>
+            <p>Build your memory. Sharpen your apron decisions.</p>
+          </div>
+          <div class="date-chip"><span class="date-dot"></span><span id="todayDate">TODAY</span></div>
+        </div>
+        <div class="overview-grid">
+          <button class="overview-card card-blue" data-view="flashcardsView">
+            <div class="overview-card-top"><span class="overview-icon">▤</span><span class="arrow-link">↗</span></div>
+            <div class="overview-value" id="overviewCardCount">0</div>
+            <div class="overview-label">FLASH CARDS READY</div>
+            <p id="overviewDeckSummary">Create a deck to get started.</p>
+          </button>
+          <button class="overview-card card-orange" data-view="apronView">
+            <div class="overview-card-top"><span class="overview-icon runway-icon">↗</span><span class="arrow-link">↗</span></div>
+            <div class="overview-value" id="overviewApronAccuracy">—</div>
+            <div class="overview-label">APRON ACCURACY</div>
+            <p id="overviewApronSummary">No scenarios completed yet.</p>
+          </button>
+          <div class="overview-card card-dark">
+            <div class="overview-card-top"><span class="overview-icon">◷</span><span class="live-pill"><i></i> LIVE</span></div>
+            <div class="overview-value">CYYC</div>
+            <div class="overview-label">CURRENT AIRFIELD</div>
+            <p>Apron 1 · movement trainer</p>
+          </div>
+        </div>
+        <div class="dashboard-columns">
+          <div class="panel recent-panel">
+            <div class="panel-heading"><div><span class="section-kicker">YOUR WORKSPACE</span><h2>Ready for a session?</h2></div><button class="text-button" data-view="flashcardsView">View workspace <span>→</span></button></div>
+            <div class="quick-actions">
+              <button class="quick-action" data-action="quickReview"><span class="quick-icon blue">▶</span><span><strong>Review flash cards</strong><small>Choose a deck and minimum difficulty</small></span><b>›</b></button>
+              <button class="quick-action" data-view="apronView"><span class="quick-icon orange">⌁</span><span><strong>Run an apron scenario</strong><small>Practice an arrival or departure</small></span><b>›</b></button>
+              <button class="quick-action" data-action="newDeck"><span class="quick-icon mint">＋</span><span><strong>Create a new deck</strong><small>Questions, answers, and images</small></span><b>›</b></button>
+            </div>
+          </div>
+          <div class="panel activity-panel">
+            <div class="panel-heading"><div><span class="section-kicker">PRACTICE LOG</span><h2>Session snapshot</h2></div></div>
+            <div class="activity-stat"><span class="activity-symbol blue-text">▤</span><div><strong id="snapshotNewCards">0</strong><small>new cards waiting</small></div></div>
+            <div class="activity-stat"><span class="activity-symbol orange-text">✓</span><div><strong id="snapshotStreak">0</strong><small>apron day streak</small></div></div>
+            <div class="mini-note"><span>✦</span><p id="snapshotNote">Your next correct answer is one practice round away.</p></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="flashcardsView">
+        <div class="page-heading">
+          <div><div class="eyebrow"><span class="eyebrow-line"></span> MEMORY / RECALL</div><h1>Flash <span>Cards.</span></h1><p>Build a deck, then review what matters most.</p></div>
+          <button class="primary-button" id="newDeckButton"><span>＋</span> New deck</button>
+        </div>
+        <div class="stat-strip" id="flashStats"></div>
+        <div class="workspace-grid">
+          <div class="panel deck-panel">
+            <div class="panel-heading"><div><span class="section-kicker">YOUR LIBRARY</span><h2>Decks</h2></div><span class="muted-count" id="deckCountLabel">0 decks</span></div>
+            <div id="deckList" class="deck-list"></div>
+          </div>
+          <div class="panel guide-panel">
+            <div class="guide-illustration"><div class="guide-ring"><span>✦</span></div><i class="orbit orbit-one"></i><i class="orbit orbit-two"></i></div>
+            <span class="section-kicker">REVIEW SYSTEM</span><h2>Small sessions.<br><span>Strong recall.</span></h2>
+            <p>New cards always make it into a session. Once you rate them, use the minimum difficulty filter to focus your next round.</p>
+            <div class="difficulty-legend"><span><i class="dot easy-dot"></i> Easy</span><span><i class="dot mid-dot"></i> Mid</span><span><i class="dot hard-dot"></i> Hard</span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="apronView">
+        <div class="page-heading apron-heading">
+          <div><div class="eyebrow"><span class="eyebrow-line orange-line"></span> OPERATIONS / CYYC</div><h1>Apron <span>Ops.</span></h1><p>Read the request. Pick the route. Keep it moving.</p></div>
+          <div class="apron-badge"><span class="live-pulse"></span> APRON 1 TRAINER</div>
+        </div>
+        <div class="ops-stat-strip" id="opsStats"></div>
+        <div class="apron-layout">
+          <div class="ops-main">
+            <div class="mode-switch" role="tablist" aria-label="Scenario direction">
+              <button class="mode-tab active" data-mode="random">↯ Mixed practice</button>
+              <button class="mode-tab" data-mode="arrival">↙ Arrival</button>
+              <button class="mode-tab" data-mode="departure">↗ Departure</button>
+            </div>
+            <div class="scenario-panel" id="scenarioPanel"></div>
+          </div>
+          <aside class="panel rules-panel">
+            <div class="panel-heading"><div><span class="section-kicker">QUICK REFERENCE</span><h2>Apron 1 rules</h2></div><span class="table-tag">CYYC</span></div>
+            <p class="rules-note" id="rulesNote">Loading the practice tables…</p>
+            <h3>Runway movement</h3>
+            <div class="table-wrap"><table id="runwayTable"><thead><tr><th>RWY</th><th>Arrival in</th><th>Departure out</th></tr></thead><tbody></tbody></table></div>
+            <h3>Gate → departure spot</h3>
+            <div class="table-wrap"><table id="spotTable"><thead><tr><th>Gates</th><th>Spot</th></tr></thead><tbody></tbody></table></div>
+            <div class="rule-footnote"><span>ⓘ</span><span>Reference only — always verify current airport publications.</span></div>
+          </aside>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="deckModal" hidden>
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="deckModalTitle">
+      <div class="modal-header"><div><span class="section-kicker">FLASH CARD LIBRARY</span><h2 id="deckModalTitle">New deck</h2></div><button class="close-button" data-close="deckModal" aria-label="Close">×</button></div>
+      <div class="modal-content">
+        <div class="form-row"><label>Deck name<input id="deckNameInput" type="text" maxlength="80" placeholder="e.g. CYYC Ground Procedures"></label><label>Short description<input id="deckDescriptionInput" type="text" maxlength="140" placeholder="What are you learning?"></label></div>
+        <div class="card-library-heading"><div><span class="section-kicker">CARDS IN THIS DECK</span><h3 id="cardLibraryTitle">0 cards</h3></div><button class="secondary-button" id="addCardButton">＋ Add card</button></div>
+        <div id="modalCardList" class="modal-card-list"></div>
+      </div>
+      <div class="modal-footer"><button class="secondary-button" data-close="deckModal">Cancel</button><button class="primary-button" id="saveDeckButton">Save deck</button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="cardModal" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="cardModalTitle">
+      <div class="modal-header"><div><span class="section-kicker">DECK BUILDER</span><h2 id="cardModalTitle">Add a card</h2></div><button class="close-button" data-close="cardModal" aria-label="Close">×</button></div>
+      <div class="modal-content card-form">
+        <label>Question <textarea id="questionInput" rows="4" maxlength="2000" placeholder="Write the prompt…"></textarea></label>
+        <div class="image-input-row"><label class="image-picker"><span class="upload-icon">＋</span><span><strong>Question image</strong><small>Optional · PNG, JPG or GIF</small></span><input id="questionImageInput" type="file" accept="image/*"></label><div class="image-preview" id="questionImagePreview"></div></div>
+        <label>Answer <textarea id="answerInput" rows="4" maxlength="2000" placeholder="Write the answer…"></textarea></label>
+        <div class="image-input-row"><label class="image-picker"><span class="upload-icon">＋</span><span><strong>Answer image</strong><small>Optional · PNG, JPG or GIF</small></span><input id="answerImageInput" type="file" accept="image/*"></label><div class="image-preview" id="answerImagePreview"></div></div>
+        <p class="form-hint">Cards start with a <b>New</b> tag. Images are kept inside your browser and included in JSON exports.</p>
+      </div>
+      <div class="modal-footer"><button class="secondary-button" data-close="cardModal">Cancel</button><button class="primary-button" id="saveCardButton">Add card</button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="reviewSetupModal" hidden>
+    <div class="modal modal-compact" role="dialog" aria-modal="true" aria-labelledby="reviewSetupTitle">
+      <div class="modal-header"><div><span class="section-kicker">START A SESSION</span><h2 id="reviewSetupTitle">Choose your focus</h2></div><button class="close-button" data-close="reviewSetupModal" aria-label="Close">×</button></div>
+      <div class="modal-content"><div class="setup-deck-name" id="setupDeckName"></div><p class="modal-copy">Include cards at or above this difficulty. <b>New</b> cards are always included.</p><div class="difficulty-options" id="difficultyOptions"><button class="difficulty-option selected" data-level="all"><span>ALL</span><small>Every card</small></button><button class="difficulty-option" data-level="mid"><span>MID + HARD</span><small>Focused review</small></button><button class="difficulty-option" data-level="hard"><span>HARD ONLY</span><small>Most challenging</small></button></div></div>
+      <div class="modal-footer"><button class="secondary-button" data-close="reviewSetupModal">Not yet</button><button class="primary-button" id="beginReviewButton">Begin review <span>→</span></button></div>
+    </div>
+  </div>
+
+  <div class="modal-backdrop review-backdrop" id="reviewModal" hidden>
+    <div class="modal review-modal" role="dialog" aria-modal="true" aria-labelledby="reviewTitle">
+      <div class="review-top"><button class="close-button" data-close="reviewModal" aria-label="Exit review">×</button><div class="review-progress"><span id="reviewDeckLabel">DECK</span><strong id="reviewProgressLabel">1 / 1</strong><div class="progress-track"><i id="reviewProgressBar"></i></div></div><span class="review-session-mark">FOCUS MODE</span></div>
+      <div class="review-card" id="reviewCard"></div>
+      <div class="review-actions" id="reviewActions"></div>
+    </div>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>
