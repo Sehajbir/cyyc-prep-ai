@@ -385,20 +385,32 @@
     const panel = $('#scenarioPanel'); if (!currentScenario) { panel.innerHTML = '<div class="empty-state">Loading scenario…</div>'; return; }
     const s = currentScenario; const isArrival = s.direction === 'arrival';
     const taxiwayChoices = airportRules.taxiways;
-    const spotChoices = airportRules.positions;
-    const routeQuestion = isArrival ? 'Select the taxiway to enter Apron 1' : 'Select the position and taxiway to exit Apron 1';
     const selectedTaxi = scenarioSelection?.taxiway || '';
     const selectedSpot = scenarioSelection?.spot || '';
+    // Once a taxiway is chosen, show every position that is valid for it.
+    // With no taxiway selected yet, show the full position list.
+    const spotChoices = selectedTaxi ? positionChoicesForTaxiway(selectedTaxi) : airportRules.positions;
+    const routeQuestion = isArrival ? 'Select the taxiway to enter Apron 1' : 'Select the position and taxiway to exit Apron 1';
+    const answerHint = isArrival ? 'One selection required.' : selectedTaxi ? `Any of these positions is valid: ${spotChoices.join(', ')}` : 'Select a taxiway and any mapped position.';
     const optionButtons = (items, selected, type) => items.map((item) => `<button class="answer-option ${selected === item ? 'selected' : ''}" data-answer-type="${type}" data-answer-value="${item}">${item}</button>`).join('');
     const result = scenarioAnswered ? renderScenarioResult(s) : '';
     const runwayLabel = isArrival ? s.runway.arrivalLabel : s.runway.name;
-    panel.innerHTML = `<div class="scenario-content"><div class="scenario-topline"><div class="scenario-label"><i></i> ${isArrival ? 'ARRIVAL REQUEST' : 'DEPARTURE REQUEST'}</div><span class="scenario-count">RANDOM SCENARIO</span></div><div class="request-card"><h2>${escapeHtml(s.callsign)} <span>requests ${isArrival ? 'entry' : 'exit'}.</span></h2><p>${isArrival ? 'Arrival runway assigned. Select the correct taxiway to enter Apron 1.' : 'Departure runway assigned. Select the correct taxiway and Apron 1 position to exit.'}</p></div><div class="request-grid"><div class="request-detail"><small>Movement</small><strong class="orange">${isArrival ? 'ARRIVAL' : 'DEPARTURE'}</strong></div><div class="request-detail"><small>${isArrival ? 'Arrival' : 'Departure'} runway</small><strong>${escapeHtml(runwayLabel)}</strong></div><div class="request-detail"><small>Gate request</small><strong>Gate ${s.gate}</strong></div></div><div class="answer-area"><h3>${routeQuestion}</h3>${!isArrival ? `<div class="choice-label">APRON 1 POSITION #</div><div class="answer-grid" data-group="spot">${optionButtons(spotChoices, selectedSpot, 'spot')}</div>` : ''}<div class="choice-label ${!isArrival ? 'taxi-label' : ''}">TAXIWAY</div><div class="answer-grid" data-group="taxiway">${optionButtons(taxiwayChoices, selectedTaxi, 'taxiway')}</div><div class="answer-actions"><span class="answer-hint">${isArrival ? 'One selection required.' : 'Two selections required.'}</span><button class="primary-button submit-answer" id="submitScenario" ${scenarioAnswered ? 'disabled' : ''}>Check route <span>→</span></button></div>${result}</div></div>`;
+    panel.innerHTML = `<div class="scenario-content"><div class="scenario-topline"><div class="scenario-label"><i></i> ${isArrival ? 'ARRIVAL REQUEST' : 'DEPARTURE REQUEST'}</div><span class="scenario-count">RANDOM SCENARIO</span></div><div class="request-card"><h2>${escapeHtml(s.callsign)} <span>requests ${isArrival ? 'entry' : 'exit'}.</span></h2><p>${isArrival ? 'Arrival runway assigned. Select the correct taxiway to enter Apron 1.' : 'Departure runway assigned. Select the correct taxiway and Apron 1 position to exit.'}</p></div><div class="request-grid"><div class="request-detail"><small>Movement</small><strong class="orange">${isArrival ? 'ARRIVAL' : 'DEPARTURE'}</strong></div><div class="request-detail"><small>${isArrival ? 'Arrival' : 'Departure'} runway</small><strong>${escapeHtml(runwayLabel)}</strong></div><div class="request-detail"><small>Gate request</small><strong>Gate ${s.gate}</strong></div></div><div class="answer-area"><h3>${routeQuestion}</h3>${!isArrival ? `<div class="choice-label">APRON 1 POSITION #</div><div class="answer-grid" data-group="spot">${optionButtons(spotChoices, selectedSpot, 'spot')}</div>` : ''}<div class="choice-label ${!isArrival ? 'taxi-label' : ''}">TAXIWAY</div><div class="answer-grid" data-group="taxiway">${optionButtons(taxiwayChoices, selectedTaxi, 'taxiway')}</div><div class="answer-actions"><span class="answer-hint">${answerHint}</span><button class="primary-button submit-answer" id="submitScenario" ${scenarioAnswered ? 'disabled' : ''}>Check route <span>→</span></button></div>${result}</div></div>`;
+  }
+
+  function isCorrectScenario(s) {
+    const selectedTaxiway = scenarioSelection?.taxiway;
+    if (!selectedTaxiway || !s.correctTaxiways.includes(selectedTaxiway)) return false;
+    if (s.direction === 'arrival') return true;
+
+    // A taxiway may have more than one Apron 1 position. Any one of the
+    // positions mapped to the selected taxiway is a correct departure answer.
+    const validPositions = positionChoicesForTaxiway(selectedTaxiway);
+    return Boolean(scenarioSelection?.spot) && validPositions.includes(String(scenarioSelection.spot));
   }
 
   function renderScenarioResult(s) {
-    const isCorrect = s.direction === 'arrival'
-      ? s.correctTaxiways.includes(scenarioSelection?.taxiway)
-      : s.correctTaxiways.includes(scenarioSelection?.taxiway) && s.correctPositions.includes(scenarioSelection?.spot);
+    const isCorrect = isCorrectScenario(s);
     const taxiwayLabel = s.route.replace(/\*/g, '');
     const answer = s.direction === 'arrival'
       ? `Taxiway ${taxiwayLabel}`
@@ -408,9 +420,13 @@
 
   function submitScenario() {
     const s = currentScenario; if (!s || scenarioAnswered) return;
-    const correct = s.direction === 'arrival'
-      ? s.correctTaxiways.includes(scenarioSelection?.taxiway)
-      : s.correctTaxiways.includes(scenarioSelection?.taxiway) && s.correctPositions.includes(scenarioSelection?.spot);
+    const hasTaxiway = Boolean(scenarioSelection?.taxiway);
+    const hasPosition = s.direction === 'arrival' || Boolean(scenarioSelection?.spot);
+    if (!hasTaxiway || !hasPosition) {
+      showToast(s.direction === 'arrival' ? 'Select a taxiway first.' : 'Select both a taxiway and an Apron 1 position.', 'error');
+      return;
+    }
+    const correct = isCorrectScenario(s);
     scenarioAnswered = true; opsStats.completed += 1; if (correct) opsStats.correct += 1;
     const today = new Date().toISOString().slice(0, 10);
     if (opsStats.lastDate !== today) { const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10); opsStats.streak = opsStats.lastDate === yesterday ? opsStats.streak + 1 : 1; opsStats.lastDate = today; }
@@ -464,7 +480,17 @@
     if (target.id === 'hideAnswerButton') { renderReviewCard(); return; }
     if (target.id === 'closeReviewButton') { closeModal('reviewModal'); switchView('flashcardsView'); return; }
     if (target.dataset.mode) { scenarioMode = target.dataset.mode; $$('.mode-tab').forEach((tab) => tab.classList.toggle('active', tab.dataset.mode === scenarioMode)); newScenario(); return; }
-    if (target.dataset.answerType) { if (scenarioAnswered) return; scenarioSelection = scenarioSelection || {}; scenarioSelection[target.dataset.answerType] = target.dataset.answerValue; renderScenario(); return; }
+    if (target.dataset.answerType) {
+      if (scenarioAnswered) return;
+      scenarioSelection = scenarioSelection || {};
+      scenarioSelection[target.dataset.answerType] = target.dataset.answerValue;
+      if (target.dataset.answerType === 'taxiway' && scenarioMode !== 'arrival' && currentScenario?.direction === 'departure') {
+        const validPositions = positionChoicesForTaxiway(target.dataset.answerValue);
+        if (!validPositions.includes(String(scenarioSelection.spot))) scenarioSelection.spot = '';
+      }
+      renderScenario();
+      return;
+    }
     if (target.id === 'submitScenario') { submitScenario(); return; }
     if (target.id === 'nextScenario') { newScenario(); return; }
   });
