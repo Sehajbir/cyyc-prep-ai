@@ -400,7 +400,8 @@
 
   function isCorrectScenario(s) {
     const selectedTaxiway = scenarioSelection?.taxiway;
-    if (!selectedTaxiway || !s.correctTaxiways.includes(selectedTaxiway)) return false;
+    const correctTaxiways = Array.isArray(s.correctTaxiways) ? s.correctTaxiways : [];
+    if (!selectedTaxiway || !correctTaxiways.includes(selectedTaxiway)) return false;
     if (s.direction === 'arrival') return true;
 
     // A taxiway may have more than one Apron 1 position. Any one of the
@@ -411,10 +412,14 @@
 
   function renderScenarioResult(s) {
     const isCorrect = isCorrectScenario(s);
-    const taxiwayLabel = s.route.replace(/\*/g, '');
+    const correctTaxiways = Array.isArray(s.correctTaxiways) ? s.correctTaxiways : [];
+    const correctPositions = Array.isArray(s.correctPositions) && s.correctPositions.length
+      ? s.correctPositions
+      : positionChoicesForTaxiway(correctTaxiways[0]);
+    const taxiwayLabel = String(s.route || correctTaxiways.join('/')).replace(/\*/g, '');
     const answer = s.direction === 'arrival'
       ? `Taxiway ${taxiwayLabel}`
-      : `Position ${s.correctPositions.join(' or ')} · Taxiway ${taxiwayLabel}`;
+      : `Position ${correctPositions.join(' or ')} · Taxiway ${taxiwayLabel}`;
     return `<div class="scenario-result ${isCorrect ? 'correct' : 'incorrect'}"><div><strong>${isCorrect ? 'Correct route.' : 'Not quite.'}</strong><small>${isCorrect ? 'Good read on the supplied Apron 1 table.' : `The table calls for ${answer}.`}</small></div><button class="next-scenario" id="nextScenario">Next scenario ↗</button></div>`;
   }
 
