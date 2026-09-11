@@ -387,11 +387,12 @@
     const taxiwayChoices = airportRules.taxiways;
     const selectedTaxi = scenarioSelection?.taxiway || '';
     const selectedSpot = scenarioSelection?.spot || '';
-    // Once a taxiway is chosen, show every position that is valid for it.
-    // With no taxiway selected yet, show the full position list.
-    const spotChoices = selectedTaxi ? positionChoicesForTaxiway(selectedTaxi) : airportRules.positions;
+    // Keep every Apron 1 position visible so the learner must use the table,
+    // rather than receiving the answer from a filtered list.
+    const spotChoices = airportRules.positions;
     const routeQuestion = isArrival ? 'Select the taxiway to enter Apron 1' : 'Select the position and taxiway to exit Apron 1';
-    const answerHint = isArrival ? 'One selection required.' : selectedTaxi ? `Any of these positions is valid: ${spotChoices.join(', ')}` : 'Select a taxiway and any mapped position.';
+    const validPositionHint = positionChoicesForTaxiway(selectedTaxi);
+    const answerHint = isArrival ? 'One selection required.' : selectedTaxi ? `Valid positions for ${selectedTaxi}: ${validPositionHint.join(', ')}` : 'Select a taxiway and any mapped position.';
     const optionButtons = (items, selected, type) => items.map((item) => `<button class="answer-option ${selected === item ? 'selected' : ''}" data-answer-type="${type}" data-answer-value="${item}">${item}</button>`).join('');
     const result = scenarioAnswered ? renderScenarioResult(s) : '';
     const runwayLabel = isArrival ? s.runway.arrivalLabel : s.runway.name;
@@ -489,10 +490,6 @@
       if (scenarioAnswered) return;
       scenarioSelection = scenarioSelection || {};
       scenarioSelection[target.dataset.answerType] = target.dataset.answerValue;
-      if (target.dataset.answerType === 'taxiway' && scenarioMode !== 'arrival' && currentScenario?.direction === 'departure') {
-        const validPositions = positionChoicesForTaxiway(target.dataset.answerValue);
-        if (!validPositions.includes(String(scenarioSelection.spot))) scenarioSelection.spot = '';
-      }
       renderScenario();
       return;
     }
