@@ -23,6 +23,6 @@ Decks and practice statistics are intentionally stored in the browser's local st
 
 ## Updating the Apron 1 tables
 
-The source of truth for the scenario trainer is `rules.py`. The UI loads it from `/api/rules`; update the runway, gate/spot, taxiway and notes there when the supplied training tables change. The included table is a clearly labeled practice configuration and should not be used as operational guidance without checking current airport publications.
+The source of truth for the scenario trainer is `rules.py`. The UI loads it from `/api/rules`; the supplied gate route tables and taxiway-to-position table are transcribed there, including the asterisk markers and permitted gate list. Update that file when the training tables change. This is a study aid and should not be used as operational guidance without checking current airport publications.
 
 No third-party packages, build step, database, or external CDN is required.

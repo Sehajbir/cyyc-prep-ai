@@ -319,15 +319,31 @@
     const reader = new FileReader(); reader.onload = () => { draftImages[side] = reader.result; updateImagePreview(side, reader.result); }; reader.readAsDataURL(file);
   }
 
+  function routeOptions(route) {
+    return String(route || '').split('/').map((value) => value.replace(/\*/g, '').trim()).filter(Boolean);
+  }
+
+  function positionChoicesForTaxiway(taxiway) {
+    const base = String(taxiway || '').replace(/\*/g, '');
+    return airportRules.taxiwayPositions.find((row) => row.taxiway === base)?.positions || [];
+  }
+
   function buildScenario() {
     if (!airportRules) return null;
     const direction = scenarioMode === 'random' ? (Math.random() < .5 ? 'arrival' : 'departure') : scenarioMode;
     const runway = airportRules.runways[Math.floor(Math.random() * airportRules.runways.length)];
-    const gateGroup = airportRules.gateSpots[Math.floor(Math.random() * airportRules.gateSpots.length)];
+    const gateGroup = airportRules.gateRules[Math.floor(Math.random() * airportRules.gateRules.length)];
     const gate = gateGroup.gateNumbers[Math.floor(Math.random() * gateGroup.gateNumbers.length)];
+    const routeKey = direction === 'arrival' ? `arrival${runway.flow}` : runway.tableKey;
+    const route = gateGroup[routeKey];
+    const correctTaxiways = routeOptions(route);
     const callsigns = ['WJA', 'ACA', 'JZA', 'POE', 'ROU'];
     const callsign = `${callsigns[Math.floor(Math.random() * callsigns.length)]} ${Math.floor(100 + Math.random() * 899)}`;
-    return { direction, runway, gate, gateGroup, callsign };
+    return {
+      direction, runway, gate, gateGroup, callsign, route,
+      correctTaxiways,
+      correctPositions: direction === 'departure' ? positionChoicesForTaxiway(correctTaxiways[0]) : [],
+    };
   }
 
   function newScenario() {
@@ -338,27 +354,32 @@
     const panel = $('#scenarioPanel'); if (!currentScenario) { panel.innerHTML = '<div class="empty-state">Loading scenario…</div>'; return; }
     const s = currentScenario; const isArrival = s.direction === 'arrival';
     const taxiwayChoices = airportRules.taxiways;
-    const spotChoices = airportRules.spots;
-    const routeQuestion = isArrival ? 'Select the taxiway to enter Apron 1' : 'Select the spot and taxiway to exit Apron 1';
+    const spotChoices = airportRules.positions;
+    const routeQuestion = isArrival ? 'Select the taxiway to enter Apron 1' : 'Select the position and taxiway to exit Apron 1';
     const selectedTaxi = scenarioSelection?.taxiway || '';
     const selectedSpot = scenarioSelection?.spot || '';
     const optionButtons = (items, selected, type) => items.map((item) => `<button class="answer-option ${selected === item ? 'selected' : ''}" data-answer-type="${type}" data-answer-value="${item}">${item}</button>`).join('');
     const result = scenarioAnswered ? renderScenarioResult(s) : '';
-    panel.innerHTML = `<div class="scenario-content"><div class="scenario-topline"><div class="scenario-label"><i></i> ${isArrival ? 'ARRIVAL REQUEST' : 'DEPARTURE REQUEST'}</div><span class="scenario-count">RANDOM SCENARIO</span></div><div class="request-card"><h2>${escapeHtml(s.callsign)} <span>requests ${isArrival ? 'entry' : 'exit'}.</span></h2><p>${isArrival ? 'Arrival runway assigned. Select the correct taxiway to enter Apron 1.' : 'Departure runway assigned. Select the correct spot and taxiway to leave Apron 1.'}</p></div><div class="request-grid"><div class="request-detail"><small>Movement</small><strong class="orange">${isArrival ? 'ARRIVAL' : 'DEPARTURE'}</strong></div><div class="request-detail"><small>${isArrival ? 'Arrival' : 'Departure'} runway</small><strong>${escapeHtml(s.runway.name)}</strong></div><div class="request-detail"><small>Gate request</small><strong>Gate ${s.gate}</strong></div></div><div class="answer-area"><h3>${routeQuestion}</h3>${!isArrival ? `<div class="choice-label">SPOT</div><div class="answer-grid" data-group="spot">${optionButtons(spotChoices, selectedSpot, 'spot')}</div>` : ''}<div class="choice-label ${!isArrival ? 'taxi-label' : ''}">TAXIWAY</div><div class="answer-grid" data-group="taxiway">${optionButtons(taxiwayChoices, selectedTaxi, 'taxiway')}</div><div class="answer-actions"><span class="answer-hint">${isArrival ? 'One selection required.' : 'Two selections required.'}</span><button class="primary-button submit-answer" id="submitScenario" ${scenarioAnswered ? 'disabled' : ''}>Check route <span>→</span></button></div>${result}</div></div>`;
+    const runwayLabel = isArrival ? s.runway.arrivalLabel : s.runway.name;
+    panel.innerHTML = `<div class="scenario-content"><div class="scenario-topline"><div class="scenario-label"><i></i> ${isArrival ? 'ARRIVAL REQUEST' : 'DEPARTURE REQUEST'}</div><span class="scenario-count">RANDOM SCENARIO</span></div><div class="request-card"><h2>${escapeHtml(s.callsign)} <span>requests ${isArrival ? 'entry' : 'exit'}.</span></h2><p>${isArrival ? 'Arrival runway assigned. Select the correct taxiway to enter Apron 1.' : 'Departure runway assigned. Select the correct taxiway and Apron 1 position to exit.'}</p></div><div class="request-grid"><div class="request-detail"><small>Movement</small><strong class="orange">${isArrival ? 'ARRIVAL' : 'DEPARTURE'}</strong></div><div class="request-detail"><small>${isArrival ? 'Arrival' : 'Departure'} runway</small><strong>${escapeHtml(runwayLabel)}</strong></div><div class="request-detail"><small>Gate request</small><strong>Gate ${s.gate}</strong></div></div><div class="answer-area"><h3>${routeQuestion}</h3>${!isArrival ? `<div class="choice-label">APRON 1 POSITION #</div><div class="answer-grid" data-group="spot">${optionButtons(spotChoices, selectedSpot, 'spot')}</div>` : ''}<div class="choice-label ${!isArrival ? 'taxi-label' : ''}">TAXIWAY</div><div class="answer-grid" data-group="taxiway">${optionButtons(taxiwayChoices, selectedTaxi, 'taxiway')}</div><div class="answer-actions"><span class="answer-hint">${isArrival ? 'One selection required.' : 'Two selections required.'}</span><button class="primary-button submit-answer" id="submitScenario" ${scenarioAnswered ? 'disabled' : ''}>Check route <span>→</span></button></div>${result}</div></div>`;
   }
 
   function renderScenarioResult(s) {
-    const correctTaxi = s.direction === 'arrival' ? s.runway.arrivalTaxiway : s.runway.departureTaxiway;
-    const correctSpot = s.gateGroup.spot;
-    const isCorrect = s.direction === 'arrival' ? scenarioSelection?.taxiway === correctTaxi : scenarioSelection?.taxiway === correctTaxi && scenarioSelection?.spot === correctSpot;
-    const answer = s.direction === 'arrival' ? `Taxiway ${correctTaxi}` : `Spot ${correctSpot} · Taxiway ${correctTaxi}`;
-    return `<div class="scenario-result ${isCorrect ? 'correct' : 'incorrect'}"><div><strong>${isCorrect ? 'Correct route.' : 'Not quite.'}</strong><small>${isCorrect ? 'Good read on the movement table.' : `The table calls for ${answer}.`}</small></div><button class="next-scenario" id="nextScenario">Next scenario ↗</button></div>`;
+    const isCorrect = s.direction === 'arrival'
+      ? s.correctTaxiways.includes(scenarioSelection?.taxiway)
+      : s.correctTaxiways.includes(scenarioSelection?.taxiway) && s.correctPositions.includes(scenarioSelection?.spot);
+    const taxiwayLabel = s.route.replace(/\*/g, '');
+    const answer = s.direction === 'arrival'
+      ? `Taxiway ${taxiwayLabel}`
+      : `Position ${s.correctPositions.join(' or ')} · Taxiway ${taxwayLabel}`;
+    return `<div class="scenario-result ${isCorrect ? 'correct' : 'incorrect'}"><div><strong>${isCorrect ? 'Correct route.' : 'Not quite.'}</strong><small>${isCorrect ? 'Good read on the supplied Apron 1 table.' : `The table calls for ${answer}.`}</small></div><button class="next-scenario" id="nextScenario">Next scenario ↗</button></div>`;
   }
 
   function submitScenario() {
     const s = currentScenario; if (!s || scenarioAnswered) return;
-    const correctTaxi = s.direction === 'arrival' ? s.runway.arrivalTaxiway : s.runway.departureTaxiway;
-    const correct = s.direction === 'arrival' ? scenarioSelection?.taxiway === correctTaxi : scenarioSelection?.taxiway === correctTaxi && scenarioSelection?.spot === s.gateGroup.spot;
+    const correct = s.direction === 'arrival'
+      ? s.correctTaxiways.includes(scenarioSelection?.taxiway)
+      : s.correctTaxiways.includes(scenarioSelection?.taxiway) && s.correctPositions.includes(scenarioSelection?.spot);
     scenarioAnswered = true; opsStats.completed += 1; if (correct) opsStats.correct += 1;
     const today = new Date().toISOString().slice(0, 10);
     if (opsStats.lastDate !== today) { const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10); opsStats.streak = opsStats.lastDate === yesterday ? opsStats.streak + 1 : 1; opsStats.lastDate = today; }
@@ -369,8 +390,8 @@
     fetch('/api/rules').then((response) => response.json()).then((rules) => {
       airportRules = rules;
       $('#rulesNote').textContent = rules.note;
-      $('#runwayTable tbody').innerHTML = rules.runways.map((row) => `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.arrivalTaxiway)}</td><td>${escapeHtml(row.departureTaxiway)}</td></tr>`).join('');
-      $('#spotTable tbody').innerHTML = rules.gateSpots.map((row) => `<tr><td>${escapeHtml(row.gates)}</td><td>${escapeHtml(row.spot)}</td></tr>`).join('');
+      $('#routeTable tbody').innerHTML = rules.gateRules.map((row) => `<tr><td>${escapeHtml(row.gates)}</td><td>${escapeHtml(row.arrival17)}</td><td>${escapeHtml(row.dep17R)}</td><td>${escapeHtml(row.dep17L)}</td><td>${escapeHtml(row.arrival35)}</td><td>${escapeHtml(row.dep35L)}</td><td>${escapeHtml(row.dep35R)}</td></tr>`).join('');
+      $('#positionTable tbody').innerHTML = rules.taxiwayPositions.map((row) => `<tr><td>${escapeHtml(row.taxiway)}</td><td>${escapeHtml(row.positions.join(', '))}</td></tr>`).join('');
       newScenario();
     }).catch(() => { $('#rulesNote').textContent = 'Could not load the practice tables. Restart the Python server and refresh.'; });
   }
